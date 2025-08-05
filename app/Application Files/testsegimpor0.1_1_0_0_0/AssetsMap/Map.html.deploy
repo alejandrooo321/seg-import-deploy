@@ -1,0 +1,73 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Vessel map</title>
+    <style>
+        html, body, #map {
+            height: 100%;
+            margin: 0;
+            padding: 0
+        }
+    </style>
+
+    <script>
+        let map, marker;
+
+        /* Google calls this after SDK loads */
+        function initMap() {
+            map = new google.maps.Map(
+                document.getElementById('map'),
+                { center: { lat: 0, lng: 0 }, zoom: 3 });
+        }
+        window.initMap = initMap;
+
+        function updatePosition(lat, lng, ship) {
+            if (!map) return;                         // SDK not ready yet
+            const p = { lat: +lat, lng: +lng };
+
+            if (!marker) {                             // first call → build marker
+                marker = new google.maps.Marker({
+                    map,
+                    icon: {
+                        url: 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                       viewBox="0 0 24 24" fill="#006699">
+                    <path d="M12 2l4 8h-8l4-8zm-6.5 9h13l1 5h-15l1-5zm-2 6h17l-8.5 5z"/>
+                  </svg>`),
+                        scaledSize: new google.maps.Size(24, 24),
+                        anchor: new google.maps.Point(12, 12)
+                    }
+                });
+            }
+            marker.setPosition(p);
+            map.panTo(p);
+
+            /* 🔊 Console log */
+            const label = ship ? ` “${ship}”` : "";
+            console.log(`📍 ${p.lat.toFixed(6)} / ${p.lng.toFixed(6)}${label}`);
+        }
+
+        /* WebView2 bridge */
+        window.chrome?.webview?.addEventListener('message', e => {
+            if (!e.data) return;
+            const { lat, lng, ship, mmsi } = e.data;
+            if (lat !== undefined && lng !== undefined)
+                updatePosition(lat, lng, ship || mmsi);
+        });
+
+        /* Load Google Maps JS SDK */
+        document.addEventListener('DOMContentLoaded', () => {
+            const s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js'
+                + '?key=AIzaSyBuOM2Ifr5uzoix_wV-6cHvu9fYQjwWfy0'
+                + '&v=weekly&callback=initMap';
+            s.async = s.defer = true;
+            document.head.appendChild(s);
+        });
+    </script>
+</head>
+<body>
+    <div id="map" style="background:#f44"></div>
+</body>
+</html>
